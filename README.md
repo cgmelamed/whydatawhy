@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WhyDataWhy
 
-## Getting Started
+A simple web application for analyzing data files using AI. Upload Excel, CSV, JSON, or text files and ask questions about your data.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- 📊 Support for multiple file formats (Excel, CSV, JSON, TXT)
+- 💬 Chat-like interface for asking questions about data
+- 🤖 AI-powered data analysis using OpenAI GPT
+- 📁 Multiple file upload support
+- 🚀 Ready for Vercel deployment
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Set up environment variables:**
+   - Copy `.env.local.example` to `.env.local`
+   - Add your OpenAI API key:
+     ```
+     OPENAI_API_KEY=your_actual_api_key_here
+     ```
 
-## Learn More
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment to Vercel
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Option 1: Deploy with Vercel CLI
 
-## Deploy on Vercel
+1. **Install Vercel CLI:**
+   ```bash
+   npm i -g vercel
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **Deploy:**
+   ```bash
+   vercel
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Set environment variable:**
+   ```bash
+   vercel env add OPENAI_API_KEY
+   ```
+
+### Option 2: Deploy via GitHub
+
+1. Push this code to a GitHub repository
+
+2. Go to [vercel.com](https://vercel.com) and import your repository
+
+3. During setup, add the environment variable:
+   - Name: `OPENAI_API_KEY`
+   - Value: Your OpenAI API key
+
+4. Click "Deploy"
+
+## Usage
+
+1. **Upload Files**: Click the upload button to select Excel, CSV, JSON, or text files
+2. **Ask Questions**: Type your question in the text field
+3. **Get Insights**: The AI will analyze your data and provide insights
+
+## Supported File Formats
+
+- Excel (.xlsx, .xls)
+- CSV (.csv)
+- JSON (.json)
+- Text (.txt)
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| OPENAI_API_KEY | Your OpenAI API key for GPT access | Yes |
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **AI**: OpenAI GPT-4o-mini
+- **File Parsing**: xlsx library
+- **Icons**: Lucide React
+
+## Notes
+
+- API calls have a 60-second timeout for large file processing
+- The application uses GPT-4o-mini for cost-effective analysis
+- Data is processed server-side for security
+- Files are not permanently stored - they're processed and discarded
