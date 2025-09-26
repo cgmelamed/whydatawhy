@@ -23,8 +23,10 @@ export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dragCounter = useRef(0);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -35,6 +37,44 @@ export default function Home() {
       const newFiles = Array.from(e.target.files);
       setUploadedFiles([...uploadedFiles, ...newFiles]);
     }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const newFiles = Array.from(e.dataTransfer.files).filter(file => {
+        const ext = file.name.toLowerCase().split('.').pop();
+        return ['xlsx', 'xls', 'csv', 'json', 'txt'].includes(ext || '');
+      });
+      setUploadedFiles([...uploadedFiles, ...newFiles]);
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const removeFile = (index: number) => {
@@ -156,19 +196,52 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div
+      className="flex flex-col h-screen bg-gray-50"
+      onDrop={handleDrop}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+    >
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <h1 className="text-2xl font-semibold text-gray-800">WhyDataWhy</h1>
         <p className="text-sm text-gray-600 mt-1">Ask questions about your data using AI</p>
       </header>
 
+      {isDragging && (
+        <div className="fixed inset-0 z-50 bg-blue-100 bg-opacity-90 pointer-events-none flex items-center justify-center">
+          <div className="text-center">
+            <Upload className="w-24 h-24 mb-4 text-blue-600 mx-auto animate-bounce" />
+            <p className="text-2xl font-bold text-blue-600">Drop your files here</p>
+            <p className="text-lg mt-2 text-blue-500">Excel, CSV, JSON, and text files</p>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <Upload className="w-12 h-12 mb-4" />
-              <p className="text-lg font-medium">Upload data and ask questions</p>
-              <p className="text-sm mt-2">Support for Excel, CSV, and other data formats</p>
+            <div
+              className={`flex flex-col items-center justify-center h-full text-gray-500 transition-all duration-200 ${
+                isDragging ? 'scale-105' : ''
+              }`}
+            >
+              {isDragging ? (
+                <>
+                  <div className="border-4 border-dashed border-blue-400 rounded-lg p-12 bg-blue-50">
+                    <Upload className="w-16 h-16 mb-4 text-blue-600 mx-auto" />
+                    <p className="text-lg font-medium text-blue-600">Drop your files here</p>
+                    <p className="text-sm mt-2 text-blue-500">Excel, CSV, JSON, and text files</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-12 h-12 mb-4" />
+                  <p className="text-lg font-medium">Upload data and ask questions</p>
+                  <p className="text-sm mt-2">Support for Excel, CSV, and other data formats</p>
+                  <p className="text-xs mt-4 text-gray-400">Drag and drop files anywhere on the page</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto">
