@@ -2,6 +2,7 @@
 
 import { useState, useRef, FormEvent, ChangeEvent } from 'react';
 import { Upload, Send, X, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
+import MarkdownMessage from '@/components/MarkdownMessage';
 
 interface Message {
   id: string;
@@ -198,12 +199,14 @@ export default function Home() {
                         ))}
                       </div>
                     )}
-                    <div className="whitespace-pre-wrap">
-                      {message.content}
-                      {streamingMessageId === message.id && message.content && (
-                        <span className="inline-block w-2 h-4 ml-1 bg-gray-600 animate-pulse" />
-                      )}
-                    </div>
+                    {message.role === 'assistant' ? (
+                      <MarkdownMessage
+                        content={message.content}
+                        isStreaming={streamingMessageId === message.id}
+                      />
+                    ) : (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    )}
                   </div>
                 </div>
               ))}
