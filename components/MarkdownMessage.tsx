@@ -44,7 +44,7 @@ export default function MarkdownMessage({ content, isStreaming }: MarkdownMessag
                 </pre>
               </div>
             ) : (
-              <code className="bg-gray-100 text-red-600 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+              <code className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
                 {children}
               </code>
             );
@@ -69,7 +69,7 @@ export default function MarkdownMessage({ content, isStreaming }: MarkdownMessag
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline"
+              className="text-gray-700 hover:text-gray-900 underline"
             >
               {children}
             </a>

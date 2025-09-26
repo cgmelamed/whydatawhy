@@ -44,7 +44,7 @@ export default function UpgradeModal({ isOpen, onClose, remaining }: UpgradeModa
         </button>
 
         <div className="text-center">
-          <Zap className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
+          <Zap className="w-12 h-12 mx-auto mb-4 text-gray-600" />
 
           <h2 className="font-serif text-2xl text-gray-900 mb-2">
             {remaining === 0 ? "You're out of free queries" : `${remaining} queries remaining`}

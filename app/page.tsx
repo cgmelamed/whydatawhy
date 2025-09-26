@@ -246,7 +246,7 @@ export default function Home() {
           <div className="flex-1 bg-white border-r">
             {isLoading ? (
               <div className="h-full flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
               </div>
             ) : visualization ? (
               <DataVisualization

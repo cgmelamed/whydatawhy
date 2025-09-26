@@ -78,7 +78,7 @@ export default function DataGrid({ data, title }: DataGridProps) {
                 key={row.id}
                 className={`border-b ${
                   rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                } hover:bg-blue-50`}
+                } hover:bg-gray-100`}
               >
                 {row.getVisibleCells().map(cell => (
                   <td

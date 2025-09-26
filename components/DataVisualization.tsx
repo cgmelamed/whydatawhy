@@ -13,7 +13,7 @@ interface DataVisualizationProps {
   title?: string;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const COLORS = ['#111827', '#374151', '#6B7280', '#9CA3AF', '#D1D5DB', '#E5E7EB'];
 
 export default function DataVisualization({
   data,
@@ -47,7 +47,7 @@ export default function DataVisualization({
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey={actualYKey} stroke="#8884d8" activeDot={{ r: 8 }} />
+              <Line type="monotone" dataKey={actualYKey} stroke="#374151" activeDot={{ r: 8 }} />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -61,7 +61,7 @@ export default function DataVisualization({
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey={actualYKey} fill="#8884d8" />
+              <Bar dataKey={actualYKey} fill="#374151" />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -77,7 +77,7 @@ export default function DataVisualization({
                 labelLine={false}
                 label={(entry: any) => entry[actualXKey]}
                 outerRadius={80}
-                fill="#8884d8"
+                fill="#374151"
                 dataKey={actualYKey}
               >
                 {data.map((entry, index) => (
@@ -98,7 +98,7 @@ export default function DataVisualization({
               <YAxis dataKey={actualYKey} />
               <Tooltip cursor={{ strokeDasharray: '3 3' }} />
               <Legend />
-              <Scatter name="Data" data={data} fill="#8884d8" />
+              <Scatter name="Data" data={data} fill="#374151" />
             </ScatterChart>
           </ResponsiveContainer>
         );
