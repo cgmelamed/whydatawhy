@@ -21,6 +21,7 @@ export default function Home() {
   const [inputValue, setInputValue] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +59,16 @@ export default function Home() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+
+    const assistantMessageId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: ''
+    };
+
+    setMessages(prev => [...prev, assistantMessage]);
+    setStreamingMessageId(assistantMessageId);
     setInputValue('');
     setIsLoading(true);
 
@@ -75,26 +86,63 @@ export default function Home() {
 
       if (!response.ok) throw new Error('Failed to analyze');
 
-      const data = await response.json();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response
-      };
+      if (!reader) throw new Error('No response body');
 
-      setMessages(prev => [...prev, assistantMessage]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+
+            if (data === '[DONE]') {
+              break;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+
+              if (parsed.error) {
+                setMessages(prev => prev.map(msg =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: parsed.error }
+                    : msg
+                ));
+                break;
+              }
+
+              if (parsed.content) {
+                setMessages(prev => prev.map(msg =>
+                  msg.id === assistantMessageId
+                    ? { ...msg, content: msg.content + parsed.content }
+                    : msg
+                ));
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+
       setUploadedFiles([]);
     } catch (error) {
       console.error('Error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error processing your request. Please try again.'
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? { ...msg, content: 'Sorry, I encountered an error processing your request. Please try again.' }
+          : msg
+      ));
     } finally {
       setIsLoading(false);
+      setStreamingMessageId(null);
       setTimeout(scrollToBottom, 100);
     }
   };
@@ -150,11 +198,16 @@ export default function Home() {
                         ))}
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <div className="whitespace-pre-wrap">
+                      {message.content}
+                      {streamingMessageId === message.id && message.content && (
+                        <span className="inline-block w-2 h-4 ml-1 bg-gray-600 animate-pulse" />
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
-              {isLoading && (
+              {isLoading && messages[messages.length - 1]?.content === '' && (
                 <div className="flex justify-start">
                   <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
                     <Loader2 className="w-5 h-5 animate-spin text-gray-600" />

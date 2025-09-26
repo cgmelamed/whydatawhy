@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import formidable from 'formidable';
-import { promises as fs } from 'fs';
+import { NextRequest } from 'next/server';
 import * as XLSX from 'xlsx';
 import OpenAI from 'openai';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const maxDuration = 60;
 
 const openai = new OpenAI({
@@ -69,12 +67,10 @@ export async function POST(req: NextRequest) {
     const files = formData.getAll('files') as File[];
 
     let dataContext = '';
-    const parsedData: any[] = [];
 
     for (const file of files) {
       try {
         const data = await parseFile(file);
-        parsedData.push({ fileName: file.name, data });
         dataContext += `\n\nFile: ${file.name}\n${summarizeData(data)}`;
       } catch (error) {
         console.error(`Error parsing file ${file.name}:`, error);
@@ -83,8 +79,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({
-        response: "OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables (.env.local file)."
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode("OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables."));
+          controller.close();
+        }
+      });
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        },
       });
     }
 
@@ -103,7 +111,7 @@ export async function POST(req: NextRequest) {
       ? `${message || 'Please analyze this data and provide insights.'}\n\nData context:${dataContext}`
       : message || 'Hello! Please upload some data files and I can help you analyze them.';
 
-    const completion = await openai.chat.completions.create({
+    const stream = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -111,17 +119,52 @@ export async function POST(req: NextRequest) {
       ],
       max_tokens: 1000,
       temperature: 0.7,
+      stream: true,
     });
 
-    const response = completion.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+    const encoder = new TextEncoder();
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content || '';
+            if (text) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text })}\n\n`));
+            }
+          }
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
 
-    return NextResponse.json({ response });
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     console.error('Error in analyze API:', error);
-    return NextResponse.json(
-      { error: 'Failed to process request' },
-      { status: 500 }
-    );
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'Failed to process request' })}\n\n`));
+        controller.close();
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+      status: 500
+    });
   }
 }
