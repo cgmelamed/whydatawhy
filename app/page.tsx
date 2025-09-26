@@ -162,7 +162,7 @@ export default function Home() {
 
   return (
     <div
-      className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-blue-50"
+      className="flex flex-col h-screen bg-white"
       onDrop={handleDrop}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -171,11 +171,11 @@ export default function Home() {
 
       {/* Drag overlay */}
       {isDragging && (
-        <div className="fixed inset-0 z-50 bg-blue-100 bg-opacity-90 pointer-events-none flex items-center justify-center">
+        <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur pointer-events-none flex items-center justify-center">
           <div className="text-center">
-            <Upload className="w-24 h-24 mb-4 text-blue-600 mx-auto animate-bounce" />
-            <p className="text-2xl font-bold text-blue-600">Drop your data file here</p>
-            <p className="text-lg mt-2 text-blue-500">Excel, CSV, JSON files supported</p>
+            <Upload className="w-20 h-20 mb-6 text-gray-900 mx-auto animate-pulse stroke-1" />
+            <p className="font-serif text-display text-gray-900">Drop your file</p>
+            <p className="text-sm mt-4 text-gray-500 font-light">Excel · CSV · JSON</p>
           </div>
         </div>
       )}
@@ -185,17 +185,17 @@ export default function Home() {
         // Upload screen
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-2xl">
-            <h1 className="text-6xl font-bold text-gray-900 mb-4">
+            <h1 className="font-serif text-hero text-gray-900 mb-6">
               Why, data, why?
             </h1>
-            <p className="text-xl text-gray-600 mb-12">
+            <p className="text-lg font-light text-gray-600 mb-16 tracking-wide">
               Ask questions about your data in plain English
             </p>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 bg-white/50 backdrop-blur hover:border-blue-400 transition-colors">
-              <Upload className="w-12 h-12 mb-4 text-gray-400 mx-auto" />
-              <p className="text-lg font-medium text-gray-700 mb-2">Drop your data file here</p>
-              <p className="text-gray-500 mb-6">or</p>
+            <div className="border border-gray-200 rounded-xl p-16 bg-gray-50/50 hover:border-gray-400 transition-all hover:shadow-lg">
+              <Upload className="w-10 h-10 mb-6 text-gray-400 mx-auto stroke-1" />
+              <p className="text-base font-light text-gray-700 mb-3">Drop your data file here</p>
+              <p className="text-sm text-gray-400 mb-8 font-light">or</p>
 
               <input
                 type="file"
@@ -207,13 +207,13 @@ export default function Home() {
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all hover:scale-105 font-medium"
+                className="px-8 py-3 bg-gray-900 text-white rounded-full hover:bg-black transition-all font-light tracking-wide text-sm"
               >
                 Browse Files
               </button>
 
-              <p className="text-sm text-gray-400 mt-6">
-                Supports Excel, CSV, and JSON files
+              <p className="text-xs text-gray-400 mt-8 font-light tracking-wide">
+                Excel · CSV · JSON
               </p>
             </div>
           </div>
@@ -221,17 +221,17 @@ export default function Home() {
       ) : (
         <>
           {/* Minimal header when data is loaded */}
-          <header className="bg-white/80 backdrop-blur border-b px-6 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <FileSpreadsheet className="w-4 h-4" />
+          <header className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm text-gray-600 font-light">
+              <FileSpreadsheet className="w-4 h-4 stroke-1" />
               <span>{uploadedData.name}</span>
             </div>
             <button
               onClick={clearData}
-              className="text-gray-400 hover:text-red-500 transition-colors p-1"
+              className="text-gray-400 hover:text-gray-900 transition-colors p-1"
               title="Clear data"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 stroke-1" />
             </button>
           </header>
 

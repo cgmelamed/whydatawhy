@@ -25,8 +25,8 @@ export default function DataVisualization({
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-gray-500">
-        <p>No data to visualize</p>
+      <div className="h-full flex items-center justify-center text-gray-400">
+        <p className="font-light">No data to visualize</p>
       </div>
     );
   }
@@ -111,8 +111,8 @@ export default function DataVisualization({
   return (
     <div className="h-full flex flex-col">
       {title && (
-        <div className="px-4 py-2 border-b bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h3 className="text-xs font-light text-gray-600 tracking-wider uppercase">{title}</h3>
         </div>
       )}
       <div className="flex-1 p-4">

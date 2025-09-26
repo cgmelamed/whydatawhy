@@ -49,8 +49,8 @@ export default function DataGrid({ data, title }: DataGridProps) {
   return (
     <div className="h-full flex flex-col">
       {title && (
-        <div className="px-4 py-2 border-b bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        <div className="px-4 py-3 border-b border-gray-100">
+          <h3 className="text-xs font-light text-gray-600 tracking-wider uppercase">{title}</h3>
         </div>
       )}
       <div className="flex-1 overflow-auto">
@@ -61,7 +61,7 @@ export default function DataGrid({ data, title }: DataGridProps) {
                 {headerGroup.headers.map(header => (
                   <th
                     key={header.id}
-                    className="px-3 py-2 text-left font-medium text-gray-700 border-r last:border-r-0"
+                    className="px-3 py-2 text-left font-light text-xs text-gray-600 uppercase tracking-wider border-r border-gray-100 last:border-r-0"
                   >
                     {flexRender(
                       header.column.columnDef.header,
@@ -83,7 +83,7 @@ export default function DataGrid({ data, title }: DataGridProps) {
                 {row.getVisibleCells().map(cell => (
                   <td
                     key={cell.id}
-                    className="px-3 py-1.5 border-r last:border-r-0 text-gray-900"
+                    className="px-3 py-1.5 border-r border-gray-50 last:border-r-0 text-gray-700 text-sm font-light"
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
@@ -93,8 +93,8 @@ export default function DataGrid({ data, title }: DataGridProps) {
           </tbody>
         </table>
       </div>
-      <div className="px-4 py-2 border-t bg-gray-50 text-xs text-gray-600">
-        {data.length} rows × {columns.length} columns
+      <div className="px-4 py-2 border-t border-gray-100 text-xs text-gray-400 font-light">
+        {data.length} rows · {columns.length} columns
       </div>
     </div>
   );
