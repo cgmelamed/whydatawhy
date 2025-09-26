@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@tanstack/react-table": "^8.21.3",
     "@types/formidable": "^3.4.5",
     "formidable": "^3.5.4",
     "lucide-react": "^0.544.0",
@@ -16,6 +17,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-markdown": "^10.1.0",
+    "recharts": "^3.2.1",
     "remark-gfm": "^4.0.1",
     "xlsx": "^0.18.5"
   },

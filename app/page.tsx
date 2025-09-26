@@ -1,41 +1,121 @@
 'use client';
 
-import { useState, useRef, FormEvent, ChangeEvent } from 'react';
-import { Upload, Send, X, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
-import MarkdownMessage from '@/components/MarkdownMessage';
+import { useState, useRef, useCallback } from 'react';
+import { Upload, X, FileSpreadsheet, FileText, Loader2, BarChart3 } from 'lucide-react';
+import DataGrid from '@/components/DataGrid';
+import DataVisualization from '@/components/DataVisualization';
+import SuggestedQuestions from '@/components/SuggestedQuestions';
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  files?: FileInfo[];
-}
-
-interface FileInfo {
+interface FileData {
   name: string;
-  size: number;
+  data: any[];
   type: string;
 }
 
+interface VisualizationConfig {
+  type: 'line' | 'bar' | 'pie' | 'scatter';
+  xKey: string;
+  yKey: string;
+  title: string;
+  data: any[];
+}
+
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [uploadedData, setUploadedData] = useState<FileData | null>(null);
+  const [visualization, setVisualization] = useState<VisualizationConfig | null>(null);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const parseFile = async (file: File): Promise<any[]> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/parse', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to parse file');
+      const data = await response.json();
+      return data.parsed;
+    } catch (error) {
+      console.error('Error parsing file:', error);
+      return [];
+    }
   };
 
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setUploadedFiles([...uploadedFiles, ...newFiles]);
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    setIsLoading(true);
+
+    try {
+      // Parse the file
+      const parsedData = await parseFile(file);
+
+      if (parsedData.length > 0) {
+        setUploadedData({
+          name: file.name,
+          data: parsedData,
+          type: file.type
+        });
+
+        // Generate initial visualization and questions
+        await analyzeData(parsedData, 'Generate an initial visualization of this data');
+      }
+    } catch (error) {
+      console.error('Error handling file:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const analyzeData = async (data: any[], question: string) => {
+    setIsLoading(true);
+    setCurrentQuestion(question);
+
+    try {
+      const response = await fetch('/api/analyze-viz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: data.slice(0, 100), question }), // Send sample for analysis
+      });
+
+      if (!response.ok) throw new Error('Failed to analyze');
+
+      const result = await response.json();
+
+      // Update visualization
+      if (result.visualization) {
+        setVisualization({
+          type: result.visualization.type || 'bar',
+          xKey: result.visualization.xKey,
+          yKey: result.visualization.yKey,
+          title: result.visualization.title || question,
+          data: data
+        });
+      }
+
+      // Update suggested questions
+      if (result.questions) {
+        setSuggestedQuestions(result.questions);
+      }
+    } catch (error) {
+      console.error('Error analyzing data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuestionClick = (question: string) => {
+    if (uploadedData) {
+      analyzeData(uploadedData.data, question);
     }
   };
 
@@ -46,11 +126,7 @@ export default function Home() {
     dragCounter.current = 0;
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const newFiles = Array.from(e.dataTransfer.files).filter(file => {
-        const ext = file.name.toLowerCase().split('.').pop();
-        return ['xlsx', 'xls', 'csv', 'json', 'txt'].includes(ext || '');
-      });
-      setUploadedFiles([...uploadedFiles, ...newFiles]);
+      handleFileUpload(e.dataTransfer.files);
     }
   };
 
@@ -77,122 +153,11 @@ export default function Home() {
     e.stopPropagation();
   };
 
-  const removeFile = (index: number) => {
-    setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
-    if (!inputValue.trim() && uploadedFiles.length === 0) return;
-
-    const fileInfos: FileInfo[] = uploadedFiles.map(file => ({
-      name: file.name,
-      size: file.size,
-      type: file.type
-    }));
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: inputValue,
-      files: fileInfos.length > 0 ? fileInfos : undefined
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-
-    const assistantMessageId = (Date.now() + 1).toString();
-    const assistantMessage: Message = {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: ''
-    };
-
-    setMessages(prev => [...prev, assistantMessage]);
-    setStreamingMessageId(assistantMessageId);
-    setInputValue('');
-    setIsLoading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('message', inputValue);
-      uploadedFiles.forEach(file => {
-        formData.append('files', file);
-      });
-
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to analyze');
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) throw new Error('No response body');
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-
-            if (data === '[DONE]') {
-              break;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-
-              if (parsed.error) {
-                setMessages(prev => prev.map(msg =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: parsed.error }
-                    : msg
-                ));
-                break;
-              }
-
-              if (parsed.content) {
-                setMessages(prev => prev.map(msg =>
-                  msg.id === assistantMessageId
-                    ? { ...msg, content: msg.content + parsed.content }
-                    : msg
-                ));
-              }
-            } catch (e) {
-              console.error('Error parsing SSE data:', e);
-            }
-          }
-        }
-      }
-
-      setUploadedFiles([]);
-    } catch (error) {
-      console.error('Error:', error);
-      setMessages(prev => prev.map(msg =>
-        msg.id === assistantMessageId
-          ? { ...msg, content: 'Sorry, I encountered an error processing your request. Please try again.' }
-          : msg
-      ));
-    } finally {
-      setIsLoading(false);
-      setStreamingMessageId(null);
-      setTimeout(scrollToBottom, 100);
-    }
-  };
-
-  const getFileIcon = (type: string) => {
-    if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv')) {
-      return <FileSpreadsheet className="w-4 h-4" />;
-    }
-    return <FileText className="w-4 h-4" />;
+  const clearData = () => {
+    setUploadedData(null);
+    setVisualization(null);
+    setSuggestedQuestions([]);
+    setCurrentQuestion('');
   };
 
   return (
@@ -203,158 +168,110 @@ export default function Home() {
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
     >
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-semibold text-gray-800">WhyDataWhy</h1>
-        <p className="text-sm text-gray-600 mt-1">Ask questions about your data using AI</p>
+      {/* Header */}
+      <header className="bg-white border-b px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <BarChart3 className="w-6 h-6 text-blue-600" />
+          <h1 className="text-xl font-semibold text-gray-800">WhyDataWhy</h1>
+        </div>
+        {uploadedData && (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>{uploadedData.name}</span>
+            </div>
+            <button
+              onClick={clearData}
+              className="text-gray-400 hover:text-red-500 transition-colors"
+              title="Clear data"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </header>
 
+      {/* Drag overlay */}
       {isDragging && (
         <div className="fixed inset-0 z-50 bg-blue-100 bg-opacity-90 pointer-events-none flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-24 h-24 mb-4 text-blue-600 mx-auto animate-bounce" />
-            <p className="text-2xl font-bold text-blue-600">Drop your files here</p>
-            <p className="text-lg mt-2 text-blue-500">Excel, CSV, JSON, and text files</p>
+            <p className="text-2xl font-bold text-blue-600">Drop your data file here</p>
+            <p className="text-lg mt-2 text-blue-500">Excel, CSV, JSON files supported</p>
           </div>
         </div>
       )}
 
-      <main className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {messages.length === 0 ? (
-            <div
-              className={`flex flex-col items-center justify-center h-full text-gray-500 transition-all duration-200 ${
-                isDragging ? 'scale-105' : ''
-              }`}
-            >
-              {isDragging ? (
-                <>
-                  <div className="border-4 border-dashed border-blue-400 rounded-lg p-12 bg-blue-50">
-                    <Upload className="w-16 h-16 mb-4 text-blue-600 mx-auto" />
-                    <p className="text-lg font-medium text-blue-600">Drop your files here</p>
-                    <p className="text-sm mt-2 text-blue-500">Excel, CSV, JSON, and text files</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-12 h-12 mb-4" />
-                  <p className="text-lg font-medium">Upload data and ask questions</p>
-                  <p className="text-sm mt-2">Support for Excel, CSV, and other data formats</p>
-                  <p className="text-xs mt-4 text-gray-400">Drag and drop files anywhere on the page</p>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4 max-w-4xl mx-auto">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-lg px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-gray-200 text-gray-800'
-                    }`}
-                  >
-                    {message.files && message.files.length > 0 && (
-                      <div className="mb-2 space-y-1">
-                        {message.files.map((file, index) => (
-                          <div
-                            key={index}
-                            className={`flex items-center gap-2 text-sm ${
-                              message.role === 'user' ? 'text-blue-100' : 'text-gray-600'
-                            }`}
-                          >
-                            {getFileIcon(file.type)}
-                            <span className="truncate">{file.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {message.role === 'assistant' ? (
-                      <MarkdownMessage
-                        content={message.content}
-                        isStreaming={streamingMessageId === message.id}
-                      />
-                    ) : (
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {isLoading && messages[messages.length - 1]?.content === '' && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-600" />
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
+      {/* Main content */}
+      {!uploadedData ? (
+        // Upload screen
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Upload className="w-16 h-16 mb-4 text-gray-400 mx-auto" />
+            <h2 className="text-2xl font-semibold text-gray-700 mb-2">Upload your data</h2>
+            <p className="text-gray-500 mb-6">Drop a file here or click to browse</p>
 
-        <div className="border-t border-gray-200 bg-white px-6 py-4">
-          {uploadedFiles.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {uploadedFiles.map((file, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2 text-sm"
-                >
-                  {getFileIcon(file.type)}
-                  <span className="truncate max-w-[200px]">{file.name}</span>
-                  <button
-                    onClick={() => removeFile(index)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="flex gap-3">
             <input
               type="file"
               ref={fileInputRef}
-              onChange={handleFileUpload}
-              multiple
-              accept=".xlsx,.xls,.csv,.json,.txt"
+              onChange={(e) => handleFileUpload(e.target.files)}
+              accept=".xlsx,.xls,.csv,.json"
               className="hidden"
             />
 
             <button
-              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              title="Upload files"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <Upload className="w-5 h-5 text-gray-600" />
+              Choose File
             </button>
 
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask a question about your data..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
-            />
-
-            <button
-              type="submit"
-              disabled={isLoading || (!inputValue.trim() && uploadedFiles.length === 0)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <Send className="w-5 h-5" />
-              Send
-            </button>
-          </form>
+            <p className="text-xs text-gray-400 mt-4">
+              Supports Excel (.xlsx, .xls), CSV, and JSON files
+            </p>
+          </div>
         </div>
-      </main>
+      ) : (
+        // Three-column layout
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left: Data Grid */}
+          <div className="w-1/3 border-r bg-white">
+            <DataGrid data={uploadedData.data} title="Data View" />
+          </div>
+
+          {/* Center: Visualization */}
+          <div className="flex-1 bg-white border-r">
+            {isLoading ? (
+              <div className="h-full flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              </div>
+            ) : visualization ? (
+              <DataVisualization
+                data={visualization.data}
+                chartType={visualization.type}
+                xKey={visualization.xKey}
+                yKey={visualization.yKey}
+                title={visualization.title}
+              />
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500">
+                <div className="text-center">
+                  <BarChart3 className="w-12 h-12 mb-4 text-gray-400 mx-auto" />
+                  <p>Select a question to visualize your data</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Suggested Questions */}
+          <div className="w-80 bg-white">
+            <SuggestedQuestions
+              questions={suggestedQuestions}
+              onQuestionClick={handleQuestionClick}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
