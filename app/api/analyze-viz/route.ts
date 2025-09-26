@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import OpenAI from 'openai';
+import { authOptions } from '@/lib/auth';
+import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
+import { prisma } from '@/lib/prisma';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs'; // Changed from edge to support auth
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
@@ -9,11 +13,51 @@ const openai = new OpenAI({
 
 export async function POST(req: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Please sign in to analyze data' },
+        { status: 401 }
+      );
+    }
+
+    // Get user from database
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check rate limit
+    const { allowed, remaining, isPro } = await checkRateLimit(user.id);
+
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          remaining: 0,
+          isPro: false,
+          requiresUpgrade: true,
+        },
+        { status: 429 }
+      );
+    }
+
     const { data, question } = await req.json();
 
     if (!data || data.length === 0) {
       return NextResponse.json({ error: 'No data provided' }, { status: 400 });
     }
+
+    // Increment usage
+    await incrementUsage(user.id);
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({
@@ -29,7 +73,8 @@ export async function POST(req: NextRequest) {
           'How does the data distribute?',
           'Are there any outliers?',
           'What patterns can we identify?'
-        ]
+        ],
+        usage: { remaining, isPro }
       });
     }
 
@@ -89,18 +134,20 @@ Analyze this data and suggest the best visualization for the question, along wit
       result.visualization.yKey = columns[1] || columns[0];
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      usage: { remaining: remaining - 1, isPro }
+    });
 
   } catch (error) {
     console.error('Error analyzing data:', error);
 
     // Return default visualization config
-    const columns = Object.keys((await req.json()).data[0] || {});
     return NextResponse.json({
       visualization: {
         type: 'bar',
-        xKey: columns[0] || 'x',
-        yKey: columns[1] || columns[0] || 'y',
+        xKey: 'x',
+        yKey: 'y',
         title: 'Data Visualization'
       },
       questions: [
@@ -108,7 +155,8 @@ Analyze this data and suggest the best visualization for the question, along wit
         'What are the highest values?',
         'How does the data change over time?',
         'What patterns emerge from the data?'
-      ]
+      ],
+      error: 'Analysis failed'
     });
   }
 }
