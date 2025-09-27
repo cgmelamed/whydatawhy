@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-8">
       <div className="max-w-md w-full text-center">
-        <h1 className="font-serif text-display text-gray-900 mb-4">
+        <h1 className="font-bold text-display text-gray-900 mb-4">
           Why, data, why?
         </h1>
         <p className="text-lg font-light text-gray-600 mb-12">
