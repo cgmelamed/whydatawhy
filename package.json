@@ -13,6 +13,7 @@
     "@stripe/stripe-js": "^7.9.0",
     "@tanstack/react-table": "^8.21.3",
     "@types/formidable": "^3.4.5",
+    "@vercel/analytics": "^1.5.0",
     "formidable": "^3.5.4",
     "lucide-react": "^0.544.0",
     "next": "15.5.4",
