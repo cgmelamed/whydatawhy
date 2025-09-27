@@ -26,15 +26,17 @@ body {
 
 /* Minimal, elegant typography scale */
 .text-hero {
-  font-size: clamp(3rem, 8vw, 5rem);
-  line-height: 0.95;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-weight: 300;
 }
 
 .text-display {
-  font-size: clamp(2rem, 5vw, 3rem);
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 300;
 }
 
 /* Smooth transitions */

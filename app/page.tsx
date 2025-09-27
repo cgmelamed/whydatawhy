@@ -174,7 +174,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur pointer-events-none flex items-center justify-center">
           <div className="text-center">
             <Upload className="w-20 h-20 mb-6 text-gray-900 mx-auto animate-pulse stroke-1" />
-            <p className="font-bold text-display text-gray-900">Drop your file</p>
+            <p className="text-display text-gray-900">Drop your file</p>
             <p className="text-sm mt-4 text-gray-500 font-light">Excel · CSV · JSON</p>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function Home() {
         // Upload screen
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center max-w-2xl">
-            <h1 className="font-bold text-hero text-gray-900 mb-6">
+            <h1 className="text-hero text-gray-900 mb-6">
               Why, data, why?
             </h1>
             <p className="text-lg font-light text-gray-600 mb-16 tracking-wide">
