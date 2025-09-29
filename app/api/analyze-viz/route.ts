@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     const { data, question } = await req.json();
 
-    // Log analysis request
+    // Log analysis request with full question for server logs
     logApiEvent('analysis_requested', {
       question,
       dataSize: data?.length || 0,
@@ -63,7 +63,10 @@ export async function POST(req: NextRequest) {
     }, user.id);
 
     // Track with Vercel Analytics (server-side)
+    // Truncate question for Analytics (255 char limit)
+    const truncatedQuestion = question.length > 255 ? question.substring(0, 252) + '...' : question;
     await track('Data Analysis', {
+      question: truncatedQuestion,
       dataSize: data?.length || 0,
       isPro: isPro
     });

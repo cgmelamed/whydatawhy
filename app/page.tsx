@@ -89,10 +89,22 @@ export default function Home() {
     setCurrentQuestion(question);
 
     // Log question asked event
+    // Truncate question to 255 chars for Vercel Analytics limit
+    const truncatedQuestion = question.length > 255 ? question.substring(0, 252) + '...' : question;
     logEvent('Question Asked', {
-      question,
+      question: truncatedQuestion,
       dataSize: data.length
     });
+
+    // Also log the full question to server for persistent storage
+    fetch('/api/log-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        dataSize: data.length,
+      }),
+    }).catch(err => console.error('Failed to log question:', err));
 
     try {
       const response = await fetch('/api/analyze-viz', {
