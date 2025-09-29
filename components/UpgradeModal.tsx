@@ -19,7 +19,7 @@ export default function UpgradeModal({ isOpen, onClose, remaining }: UpgradeModa
     setIsLoading(true);
 
     // Log upgrade click event
-    logEvent('upgrade_clicked', {
+    logEvent('Upgrade Clicked', {
       remainingQueries: remaining
     });
 
@@ -32,7 +32,7 @@ export default function UpgradeModal({ isOpen, onClose, remaining }: UpgradeModa
         const { url } = await response.json();
 
         // Log checkout started event
-        logEvent('checkout_started', {
+        logEvent('Checkout Started', {
           plan: 'pro'
         });
 

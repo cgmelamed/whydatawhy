@@ -68,7 +68,7 @@ export default function Home() {
         });
 
         // Log file upload event
-        logEvent('file_uploaded', {
+        logEvent('File Uploaded', {
           fileType: getFileExtension(file.name),
           fileSize: file.size,
           rowCount: parsedData.length
@@ -89,7 +89,7 @@ export default function Home() {
     setCurrentQuestion(question);
 
     // Log question asked event
-    logEvent('question_asked', {
+    logEvent('Question Asked', {
       question,
       dataSize: data.length
     });
@@ -117,7 +117,7 @@ export default function Home() {
         setVisualization(vizConfig);
 
         // Log visualization generated event
-        logEvent('visualization_generated', {
+        logEvent('Visualization Generated', {
           chartType: vizConfig.type,
           dataSize: data.length
         });

@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import { logApiEvent, logApiError } from '@/lib/server-analytics';
+import { track } from '@vercel/analytics/server';
 
 export const runtime = 'nodejs'; // Changed from edge to support auth
 
@@ -60,6 +61,12 @@ export async function POST(req: NextRequest) {
       isPro: isPro,
       remainingQueries: remaining
     }, user.id);
+
+    // Track with Vercel Analytics (server-side)
+    await track('Data Analysis', {
+      dataSize: data?.length || 0,
+      isPro: isPro
+    });
 
     if (!data || data.length === 0) {
       return NextResponse.json({ error: 'No data provided' }, { status: 400 });
@@ -150,6 +157,13 @@ Analyze this data and suggest the best visualization for the question, along wit
       questionCount: result.questions?.length || 0,
       chartType: result.visualization?.type
     }, user.id);
+
+    // Track visualization generation
+    if (result.visualization) {
+      await track('Visualization Generated', {
+        chartType: result.visualization.type
+      });
+    }
 
     return NextResponse.json({
       ...result,

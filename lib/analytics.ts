@@ -1,30 +1,30 @@
 import { track } from '@vercel/analytics';
 
 export type EventName =
-  | 'file_uploaded'
-  | 'question_asked'
-  | 'visualization_generated'
-  | 'upgrade_clicked'
-  | 'checkout_started';
+  | 'File Uploaded'
+  | 'Question Asked'
+  | 'Visualization Generated'
+  | 'Upgrade Clicked'
+  | 'Checkout Started';
 
 interface EventProperties {
-  file_uploaded: {
+  'File Uploaded': {
     fileType: string;
     fileSize: number;
     rowCount?: number;
   };
-  question_asked: {
+  'Question Asked': {
     question: string;
     dataSize?: number;
   };
-  visualization_generated: {
+  'Visualization Generated': {
     chartType: string;
     dataSize?: number;
   };
-  upgrade_clicked: {
+  'Upgrade Clicked': {
     remainingQueries: number;
   };
-  checkout_started: {
+  'Checkout Started': {
     plan: string;
   };
 }
