@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { X, Zap } from 'lucide-react';
+import { logEvent } from '@/lib/analytics';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -16,6 +17,12 @@ export default function UpgradeModal({ isOpen, onClose, remaining }: UpgradeModa
 
   const handleUpgrade = async () => {
     setIsLoading(true);
+
+    // Log upgrade click event
+    logEvent('upgrade_clicked', {
+      remainingQueries: remaining
+    });
+
     try {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -23,6 +30,12 @@ export default function UpgradeModal({ isOpen, onClose, remaining }: UpgradeModa
 
       if (response.ok) {
         const { url } = await response.json();
+
+        // Log checkout started event
+        logEvent('checkout_started', {
+          plan: 'pro'
+        });
+
         window.location.href = url;
       }
     } catch (error) {

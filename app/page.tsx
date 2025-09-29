@@ -5,6 +5,7 @@ import { Upload, X, FileSpreadsheet, FileText, Loader2, BarChart3 } from 'lucide
 import DataGrid from '@/components/DataGrid';
 import DataVisualization from '@/components/DataVisualization';
 import SuggestedQuestions from '@/components/SuggestedQuestions';
+import { logEvent, getFileExtension } from '@/lib/analytics';
 
 interface FileData {
   name: string;
@@ -66,6 +67,13 @@ export default function Home() {
           type: file.type
         });
 
+        // Log file upload event
+        logEvent('file_uploaded', {
+          fileType: getFileExtension(file.name),
+          fileSize: file.size,
+          rowCount: parsedData.length
+        });
+
         // Generate initial visualization and questions
         await analyzeData(parsedData, 'Generate an initial visualization of this data');
       }
@@ -80,6 +88,12 @@ export default function Home() {
     setIsLoading(true);
     setCurrentQuestion(question);
 
+    // Log question asked event
+    logEvent('question_asked', {
+      question,
+      dataSize: data.length
+    });
+
     try {
       const response = await fetch('/api/analyze-viz', {
         method: 'POST',
@@ -93,12 +107,19 @@ export default function Home() {
 
       // Update visualization
       if (result.visualization) {
-        setVisualization({
+        const vizConfig = {
           type: result.visualization.type || 'bar',
           xKey: result.visualization.xKey,
           yKey: result.visualization.yKey,
           title: result.visualization.title || question,
           data: data
+        };
+        setVisualization(vizConfig);
+
+        // Log visualization generated event
+        logEvent('visualization_generated', {
+          chartType: vizConfig.type,
+          dataSize: data.length
         });
       }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
+import { logApiEvent, logApiError } from '@/lib/server-analytics';
 
 export const runtime = 'edge';
 
@@ -14,6 +15,14 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = file.name.toLowerCase();
+    const fileExtension = fileName.split('.').pop() || 'unknown';
+
+    // Log file parse attempt
+    logApiEvent('file_parse_started', {
+      fileExtension,
+      fileSize: file.size,
+      fileName: file.name
+    });
 
     let parsedData: any[] = [];
 
@@ -33,9 +42,16 @@ export async function POST(req: NextRequest) {
       parsedData = Array.isArray(data) ? data : [data];
     }
 
+    // Log successful parse
+    logApiEvent('file_parse_success', {
+      fileExtension,
+      rowCount: parsedData.length,
+      columnCount: parsedData[0] ? Object.keys(parsedData[0]).length : 0
+    });
+
     return NextResponse.json({ parsed: parsedData });
   } catch (error) {
-    console.error('Error parsing file:', error);
+    logApiError(error, { endpoint: 'parse' });
     return NextResponse.json({ error: 'Failed to parse file' }, { status: 500 });
   }
 }

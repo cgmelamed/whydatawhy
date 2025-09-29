@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { authOptions } from '@/lib/auth';
 import { checkRateLimit, incrementUsage } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
+import { logApiEvent, logApiError } from '@/lib/server-analytics';
 
 export const runtime = 'nodejs'; // Changed from edge to support auth
 
@@ -51,6 +52,14 @@ export async function POST(req: NextRequest) {
     }
 
     const { data, question } = await req.json();
+
+    // Log analysis request
+    logApiEvent('analysis_requested', {
+      question,
+      dataSize: data?.length || 0,
+      isPro: isPro,
+      remainingQueries: remaining
+    }, user.id);
 
     if (!data || data.length === 0) {
       return NextResponse.json({ error: 'No data provided' }, { status: 400 });
@@ -134,13 +143,21 @@ Analyze this data and suggest the best visualization for the question, along wit
       result.visualization.yKey = columns[1] || columns[0];
     }
 
+    // Log successful analysis
+    logApiEvent('analysis_completed', {
+      question,
+      hasVisualization: !!result.visualization,
+      questionCount: result.questions?.length || 0,
+      chartType: result.visualization?.type
+    }, user.id);
+
     return NextResponse.json({
       ...result,
       usage: { remaining: remaining - 1, isPro }
     });
 
   } catch (error) {
-    console.error('Error analyzing data:', error);
+    logApiError(error, { endpoint: 'analyze-viz' });
 
     // Return default visualization config
     return NextResponse.json({
